@@ -1,0 +1,1 @@
+# typeof-json-schema
