@@ -1,12 +1,15 @@
 import { JsonArray, JsonObject, JsonPrimitive, JsonValue } from './json';
 
 export type ToInterface<T> = InterfaceOf<T, { '#': T; [key: string]: unknown }>;
-type InterfaceOf<T, X> = ValueOf<T, X>;
+type InterfaceOf<T, X> = 
+    T extends { anyOf: readonly (infer R)[] } ? ValueOf<R, X> :
+    ValueOf<T, X>;
 type ValueOf<T, X> =
     T extends { type: 'null' } ? null :
     T extends { type: 'boolean' } ? boolean :
     T extends { type: 'integer' } ? number :
     T extends { type: 'number' } ? number :
+    T extends { type: 'string' } ? string :
     T extends { type: 'object' } ?
         T extends { properties: infer P; required: readonly (infer R)[] } ? {
             [K in keyof P & R]: InterfaceOf<P[K], X>;
@@ -35,7 +38,17 @@ const thing = {
         id: { type: 'string' },
         name: { type: 'string' },
         value: { type: 'number' },
+        other: {
+            anyOf: [{
+                type: 'string',
+            }, {
+                type: 'number',
+            }]
+        }
     },
-    required: ['id', 'name']
+    required: ['id', 'name', 'other']
 } as const;
-type Thing = ToInterface<typeof thing>;
+const other = {
+    type: 'string',
+} as const;
+type Thing = ToInterface<typeof thing | typeof other>;
