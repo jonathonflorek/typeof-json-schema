@@ -1,0 +1,23 @@
+{
+  "name": "typeof-json-schema",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonathonflorek/typeof-json-schema.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jonathonflorek/typeof-json-schema/issues"
+  },
+  "homepage": "https://github.com/jonathonflorek/typeof-json-schema#readme",
+  "devDependencies": {
+    "typescript": "^3.5.2"
+  }
+}

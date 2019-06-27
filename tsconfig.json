@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "strict": true,
+        "outDir": "dist",
+        "declaration": true,
+        "emitDeclarationOnly": true
+    },
+    "exclude": [
+        "node_modules",
+        "dist",
+    ]
+}
