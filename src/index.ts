@@ -2,30 +2,30 @@ import { JsonArray, JsonObject, JsonValue } from './json';
 
 export type ToInterface<T> = InterfaceOf<T, { '#': T; [key: string]: unknown }>;
 type InterfaceOf<T, X> =
-    T extends { '$ref': infer R } ? InterfaceOf2<Select<X, R>, X> :
+    T extends { '$ref': infer R } ? ValueOf2<Select<X, R>, X> :
     T extends { allOf: infer R } ? 
-        R extends Tuple<1> ? InterfaceOf2<R[0], X> :
-        R extends Tuple<2> ? InterfaceOf2<R[0], X> & InterfaceOf2<R[1], X> :
-        R extends Tuple<3> ? InterfaceOf2<R[0], X> & InterfaceOf2<R[1], X> & InterfaceOf2<R[2], X> :
-        R extends Tuple<4> ? InterfaceOf2<R[0], X> & InterfaceOf2<R[1], X> & InterfaceOf2<R[2], X> & InterfaceOf2<R[3], X> :
-        R extends Tuple<5> ? InterfaceOf2<R[0], X> & InterfaceOf2<R[1], X> & InterfaceOf2<R[2], X> & InterfaceOf2<R[3], X> & InterfaceOf2<R[4], X>:
+        R extends Tuple<1> ? ValueOf2<R[0], X> :
+        R extends Tuple<2> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> :
+        R extends Tuple<3> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> & ValueOf2<R[2], X> :
+        R extends Tuple<4> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> & ValueOf2<R[2], X> & ValueOf2<R[3], X> :
+        R extends Tuple<5> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> & ValueOf2<R[2], X> & ValueOf2<R[3], X> & ValueOf2<R[4], X>:
         JsonValue :
-    T extends { anyOf: readonly (infer R)[] } ? InterfaceOf2<R, X> :
-    T extends { not: infer R } ? Exclude<JsonObject, InterfaceOf2<R, X>> :
+    T extends { anyOf: readonly (infer R)[] } ? ValueOf2<R, X> :
+    T extends { not: infer R } ? Exclude<JsonObject, ValueOf2<R, X>> :
     ValueOf<T, X>;
-type InterfaceOf2<T, X> =
-    T extends { '$ref': infer R } ? InterfaceOf3<Select<X, R>, X> :
+type ValueOf2<T, X> =
+    T extends { '$ref': infer R } ? ValueOf1<Select<X, R>, X> :
     T extends { allOf: infer R } ? 
-        R extends Tuple<1> ? InterfaceOf3<R[0], X> :
-        R extends Tuple<2> ? InterfaceOf3<R[0], X> & InterfaceOf3<R[1], X> :
-        R extends Tuple<3> ? InterfaceOf3<R[0], X> & InterfaceOf3<R[1], X> & InterfaceOf3<R[2], X> :
-        R extends Tuple<4> ? InterfaceOf3<R[0], X> & InterfaceOf3<R[1], X> & InterfaceOf3<R[2], X> & InterfaceOf3<R[3], X> :
-        R extends Tuple<5> ? InterfaceOf3<R[0], X> & InterfaceOf3<R[1], X> & InterfaceOf3<R[2], X> & InterfaceOf3<R[3], X> & InterfaceOf3<R[4], X>:
+        R extends Tuple<1> ? ValueOf1<R[0], X> :
+        R extends Tuple<2> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> :
+        R extends Tuple<3> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> :
+        R extends Tuple<4> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> & ValueOf1<R[3], X> :
+        R extends Tuple<5> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> & ValueOf1<R[3], X> & ValueOf1<R[4], X>:
         JsonValue :
-    T extends { anyOf: readonly (infer R)[] } ? InterfaceOf3<R, X> :
-    T extends { not: infer R } ? Exclude<JsonObject, InterfaceOf3<R, X>> :
+    T extends { anyOf: readonly (infer R)[] } ? ValueOf1<R, X> :
+    T extends { not: infer R } ? Exclude<JsonObject, ValueOf1<R, X>> :
     ValueOf<T, X>;
-type InterfaceOf3<T, X> =
+type ValueOf1<T, X> =
     T extends { '$ref': infer R } ? ValueOf<Select<X, R>, X> :
     T extends { allOf: infer R } ?
         R extends Tuple<1> ? ValueOf<R[0], X> :
