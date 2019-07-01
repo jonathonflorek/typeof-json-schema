@@ -51,12 +51,8 @@ type ValueOf<T, X> =
     T extends false ? never :
     T extends { const: infer C } ? C :
     T extends { enum: readonly (infer R)[] } ? R :
-    T extends { type: readonly (infer R)[] } ?
-        R extends keyof Simple ? Simple[R] :
-        never :
     T extends { type: infer R } ?
-        R extends keyof Simple ? Simple[R] :
-        R extends 'object' ?
+        ('object' extends ExtractType<R> ? 
             T extends { properties: infer P } ? (
                 T extends { required: readonly (infer R)[] } ? {
                     [K in keyof P & R]: TypeOf<P[K], X>;
@@ -72,22 +68,24 @@ type ValueOf<T, X> =
                 [K in string]?: TypeOf<P, X>;
             } :
             JsonObject :
-        R extends 'array' ?
-            T extends { items: infer R } ? 
-                R extends readonly (infer I)[] ?
-                { [K in Exclude<keyof R, keyof any[]>]: TypeOf<R[K], X> } &
-                ( T extends { additionalItems: false } ? ArrayOf<I, X> & Pick<R, 'length'> : JsonArray ) :
+        never) |
+        ('array' extends ExtractType<R> ?
+            T extends { items: infer R } ?
+                R extends readonly (infer I)[] ? {
+                    [K in Exclude<keyof R, keyof any[]>]: TypeOf<R[K], X>;
+                } & (
+                    T extends { additionalItems: false } ? ArrayOf<I, X> & Pick<R, 'length'> : JsonArray
+                ) :
                 ArrayOf<R, X> :
             JsonArray :
-        never :
+        never) |
+        ('string' extends ExtractType<R> ? string : never) |
+        ('number' extends ExtractType<R> ? number : never) |
+        ('integer' extends ExtractType<R> ? number : never) |
+        ('boolean' extends ExtractType<R> ? boolean : never) |
+        ('null' extends ExtractType<R> ? null : never) :
     JsonValue;
-interface Simple {
-    string: string;
-    number: number;
-    integer: number;
-    boolean: boolean;
-    null: null;
-}
+type ExtractType<T> = T extends readonly (infer I)[] ? I : T;
 interface ArrayOf<T, X> extends Array<TypeOf<T, X>> {}
 
 type Select<T, K> =
@@ -101,16 +99,6 @@ type Select<T, K> =
     unknown;
 
 type Tuple<N> = readonly any[] & { length: N }
-
-const schema = {
-    type: 'array',
-    items: [
-        { type: 'string' },
-        { type: 'number' },
-        { type: 'boolean' },
-    ],
-} as const;
-type schema = GetValue<typeof schema>;
 
 const metaSchema = {
     definitions: {
@@ -136,6 +124,13 @@ const metaSchema = {
     },
     type: ['object', 'boolean'],
     properties: {
+        // special
+        $ref: {
+            anyOf: [
+                { type: 'string' },
+                { $ref: ['#', 'definitions', 'stringArray'] }
+            ]
+        },
         // general
         definitions: {
             type: 'object',
@@ -174,19 +169,3 @@ const metaSchema = {
         }
     }
 } as const;
-
-type xxx<T> = T extends 'object' | readonly 'object'[] ? true : false;
-type abc = xxx<['string', 'object']>
-
-// x extends 'object' || readonly ['object', ...any[]] ? : never
-
-type ValueOfX<T, X> =
-    T extends true ? JsonValue :
-    T extends false ? never :
-    T extends { const: infer C } ? C :
-    T extends { enum: readonly (infer R)[] } ? R :
-    T extends { type: infer R } ? 
-        never : // (R extends 'object') : 
-    JsonValue;
-
-// [K in Exclude<keyof R, keyof any[]]: { [K]: TypeOf<R[K], X> }
