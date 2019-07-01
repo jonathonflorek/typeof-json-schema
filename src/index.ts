@@ -74,16 +74,9 @@ type ValueOf<T, X> =
             JsonObject :
         R extends 'array' ?
             T extends { items: infer R } ? 
-                R extends readonly (infer I)[] ? (
-                    R extends Tuple<1> ? { 0: TypeOf<R[0], X> } :
-                    R extends Tuple<2> ? { 0: TypeOf<R[0], X>; 1: TypeOf<R[1], X> } :
-                    R extends Tuple<3> ? { 0: TypeOf<R[0], X>; 1: TypeOf<R[1], X>; 2: TypeOf<R[2], X> } :
-                    R extends Tuple<4> ? { 0: TypeOf<R[0], X>; 1: TypeOf<R[1], X>; 2: TypeOf<R[2], X>; 3: TypeOf<R[3], X> } :
-                    R extends Tuple<5> ? { 0: TypeOf<R[0], X>; 1: TypeOf<R[1], X>; 2: TypeOf<R[2], X>; 3: TypeOf<R[3], X>; 4: TypeOf<R[4], X> } :
-                    unknown
-                ) & (
-                    T extends { additionalItems: false } ? ArrayOf<I, X> & Pick<R, 'length'> : JsonArray
-                ) :
+                R extends readonly (infer I)[] ?
+                { [K in Exclude<keyof R, keyof any[]>]: TypeOf<R[K], X> } &
+                ( T extends { additionalItems: false } ? ArrayOf<I, X> & Pick<R, 'length'> : JsonArray ) :
                 ArrayOf<R, X> :
             JsonArray :
         never :
@@ -108,6 +101,16 @@ type Select<T, K> =
     unknown;
 
 type Tuple<N> = readonly any[] & { length: N }
+
+const schema = {
+    type: 'array',
+    items: [
+        { type: 'string' },
+        { type: 'number' },
+        { type: 'boolean' },
+    ],
+} as const;
+type schema = GetValue<typeof schema>;
 
 const metaSchema = {
     definitions: {
