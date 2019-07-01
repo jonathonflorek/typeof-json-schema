@@ -1,8 +1,16 @@
 import { JsonArray, JsonObject, JsonValue } from './json';
 
-export type ToInterface<T> = TypeOf<T, { '#': T; [key: string]: unknown }>;
-type TypeOf<T, X> =
-    T extends { '$ref': infer R } ? ValueOf2<Select<X, R>, X> :
+const fix = (key: string, value: any) => key === '$ref' && Array.isArray(value) ? value.join('/') : value;
+
+export type GetValue<T, Ext extends {} = {}> = TypeOf<T, { '#': T } & Ext>;
+export type GetDefinitions<T extends {definitions: any}, Ext extends {} = {}> = {
+    [K in keyof T['definitions']]: TypeOf<T['definitions'][K], { '#': T } & Ext>;
+};
+
+export type TypeOf<T, X> =
+    T extends { $ref: infer R } ?
+        R extends readonly ['#', ...any[]] ? ValueOf2<Select<X, R>, X> :
+        Select<X, R> :
     T extends { allOf: infer R } ? 
         R extends Tuple<1> ? ValueOf2<R[0], X> :
         R extends Tuple<2> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> :
@@ -11,11 +19,12 @@ type TypeOf<T, X> =
         R extends Tuple<5> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> & ValueOf2<R[2], X> & ValueOf2<R[3], X> & ValueOf2<R[4], X>:
         JsonValue :
     T extends { anyOf: readonly (infer R)[] } ? ValueOf2<R & T, X> :
-    T extends { not: infer R } ? Exclude<JsonObject, ValueOf2<R, X>> :
     ValueOf<T, X>;
 type ValueOf2<T, X> =
-    T extends { '$ref': infer R } ? ValueOf1<Select<X, R>, X> :
-    T extends { allOf: infer R } ? 
+    T extends { $ref: infer R } ?
+    R extends readonly ['#', ...any[]] ? ValueOf1<Select<X, R>, X> :
+    Select<X, R> :
+    T extends { allOf: infer R } ?
         R extends Tuple<1> ? ValueOf1<R[0], X> :
         R extends Tuple<2> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> :
         R extends Tuple<3> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> :
@@ -23,10 +32,11 @@ type ValueOf2<T, X> =
         R extends Tuple<5> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> & ValueOf1<R[3], X> & ValueOf1<R[4], X>:
         JsonValue :
     T extends { anyOf: readonly (infer R)[] } ? ValueOf1<R & T, X> :
-    T extends { not: infer R } ? Exclude<JsonObject, ValueOf1<R, X>> :
     ValueOf<T, X>;
 type ValueOf1<T, X> =
-    T extends { '$ref': infer R } ? ValueOf<Select<X, R>, X> :
+    T extends { $ref: infer R } ?
+    R extends readonly ['#', ...any[]] ? ValueOf<Select<X, R>, X> :
+    Select<X, R> :
     T extends { allOf: infer R } ?
         R extends Tuple<1> ? ValueOf<R[0], X> :
         R extends Tuple<2> ? ValueOf<R[0], X> & ValueOf<R[1], X> :
@@ -35,7 +45,6 @@ type ValueOf1<T, X> =
         R extends Tuple<5> ? ValueOf<R[0], X> & ValueOf<R[1], X> & ValueOf<R[2], X> & ValueOf<R[3], X> & ValueOf<R[4], X>:
         JsonValue :
     T extends { anyOf: readonly (infer R)[] } ? ValueOf<R & T, X> :
-    T extends { not: infer R } ? Exclude<JsonObject, ValueOf<R, X>> :
     ValueOf<T, X>;
 type ValueOf<T, X> =
     T extends true ? JsonValue :
@@ -89,6 +98,7 @@ interface Simple {
 interface ArrayOf<T, X> extends Array<TypeOf<T, X>> {}
 
 type Select<T, K> =
+    K extends keyof T ? T [K] :
     K extends Tuple<0> ? T :
     K extends Tuple<1> ? T [K[0]] :
     K extends Tuple<2> ? T [K[0]] [K[1]] :
@@ -99,115 +109,81 @@ type Select<T, K> =
 
 type Tuple<N> = readonly any[] & { length: N }
 
-const schema = {
+const metaSchema = {
     definitions: {
-        id: { type: 'number' },
-        recursive: {
-            type: 'object',
-            properties: {
-                name: { type: 'string' },
-                values: {
-                    type: 'array',
-                    items: {
-                        '$ref': ['#', 'definitions', 'recursive'],
-                    },
-                },
-            },
-            required: ['name', 'values'],
-            additionalProperties: false,
-        },
-    },
-    type: 'object',
-    properties: {
-        sample: {
-            type: 'number',
-            anyOf: [
-                { const: 'hello' },
-                { const: 'world' },
-                { const: 'test' },
-            ],
-        },
-        id: { type: 'string' },
-        name: { type: 'string' },
-        value: { type: 'number' },
-        other: {
-            anyOf: [{
-                type: 'string',
-            }, {
-                type: 'number',
-            }]
-        },
-        thing: {
-            type: ['boolean', 'null'],
-        },
-        enum: {
-            enum: ['a', 'b', null, true, 4],
-        },
-        rec: {
-            '$ref': ['#', 'definitions', 'recursive'],
-        },
-        all: {
-            allOf: [{
-                type: 'object',
-                properties: {
-                    name: { type: 'number' },
-                },
-                required: ['name'],
-            }, {
-                type: 'object',
-                properties: {
-                    id: { type: 'string' },
-                },
-                required: ['id'],
-            }]
-        },
-        array: {
+        schemaArray: {
             type: 'array',
-            items: [{
-                type: 'string',
-                format: 'date'
-            }, {
-                type: 'number',
-            }],
-            additionalItems: false,
+            items: { $ref: '#' }
         },
-        array2: {
+        simpleTypes: {
+            enum: [
+                'array',
+                'boolean',
+                'integer',
+                'null',
+                'number',
+                'object',
+                'string'
+            ]
+        },
+        stringArray: {
             type: 'array',
-            items: {
-                type: 'boolean',
-            },
+            items: { type: 'string' }
         }
     },
-    required: ['id', 'name', 'other'],
-    additionalProperties: false,
+    type: ['object', 'boolean'],
+    properties: {
+        // general
+        definitions: {
+            type: 'object',
+            additionalProperties: { $ref: '#' }
+        },
+        const: true,
+        enum: {
+            type: 'array',
+            items: true,
+        },        
+        type: {
+            anyOf: [
+                { $ref: ['#', 'definitions', 'simpleTypes'] },
+                { 
+                    type: 'array',
+                    items: { $ref: ['#', 'definitions', 'simpleTypes'] },
+                }
+            ]
+        },
+        allOf: { $ref: ['#', 'definitions', 'schemaArray'] },
+        anyOf: { $ref: ['#', 'definitions', 'schemaArray'] },
+        // if object
+        additionalItems: { $ref: '#' },
+        items: {
+            anyOf: [
+                { $ref: '#' },
+                { $ref: ['#', 'definitions', 'schemaArray'] }
+            ]
+        },
+        // if array
+        required: { $ref: ['#', 'definitions', 'stringArray'] },
+        additionalProperties: { $ref: '#' },
+        properties: {
+            type: 'object',
+            additionalProperties: { $ref: '#' }
+        }
+    }
 } as const;
 
-type Schema = ToInterface<typeof schema>;
-const value: Schema = {
-    id: 'a',
-    name: 'c',
-    other: '',
-    all: {
-        name: 43,
-        id: '',
-    },
-    thing: null,
-    rec: {
-        name: '',
-        values: [{
-            name: '',
-            values: [{
-                name: '',
-                values: [{
-                    name: '',
-                    values: [{
-                        name: '',
-                        values: []
-                    }]
-                }]
-            }]
-        }]
-    },
-    array: ['', 4],
-    array2: [true, false, true]
-};
+type xxx<T> = T extends 'object' | readonly 'object'[] ? true : false;
+type abc = xxx<['string', 'object']>
+
+// x extends 'object' || readonly ['object', ...any[]] ? : never
+
+type ValueOfX<T, X> =
+    T extends true ? JsonValue :
+    T extends false ? never :
+    T extends { const: infer C } ? C :
+    T extends { enum: readonly (infer R)[] } ? R :
+    T extends { type: infer R } ? 
+        never : // (R extends 'object') : 
+    JsonValue;
+
+// [K in Exclude<keyof R, keyof any[]]: { [K]: TypeOf<R[K], X> }
