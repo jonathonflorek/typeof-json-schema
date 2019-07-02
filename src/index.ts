@@ -8,9 +8,7 @@ export type GetDefinitions<T extends {definitions: any}, Ext extends {} = {}> = 
 };
 
 export type TypeOf<T, X> =
-    T extends { $ref: infer R } ?
-        R extends readonly ['#', ...any[]] ? ValueOf2<Select<X, R>, X> :
-        Select<X, R> :
+    T extends { $ref: infer R } ? ValueOf2<Select<X, R>, X> :
     T extends { allOf: infer R } ? 
         R extends Tuple<1> ? ValueOf2<R[0], X> :
         R extends Tuple<2> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> :
@@ -21,9 +19,7 @@ export type TypeOf<T, X> =
     T extends { anyOf: readonly (infer R)[] } ? ValueOf2<R & T, X> :
     ValueOf<T, X>;
 type ValueOf2<T, X> =
-    T extends { $ref: infer R } ?
-    R extends readonly ['#', ...any[]] ? ValueOf1<Select<X, R>, X> :
-    Select<X, R> :
+    T extends { $ref: infer R } ? ValueOf1<Select<X, R>, X> :
     T extends { allOf: infer R } ?
         R extends Tuple<1> ? ValueOf1<R[0], X> :
         R extends Tuple<2> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> :
@@ -34,9 +30,7 @@ type ValueOf2<T, X> =
     T extends { anyOf: readonly (infer R)[] } ? ValueOf1<R & T, X> :
     ValueOf<T, X>;
 type ValueOf1<T, X> =
-    T extends { $ref: infer R } ?
-    R extends readonly ['#', ...any[]] ? ValueOf<Select<X, R>, X> :
-    Select<X, R> :
+    T extends { $ref: infer R } ? ValueOf<Select<X, R>, X> :
     T extends { allOf: infer R } ?
         R extends Tuple<1> ? ValueOf<R[0], X> :
         R extends Tuple<2> ? ValueOf<R[0], X> & ValueOf<R[1], X> :
@@ -71,12 +65,11 @@ type ValueOf<T, X> =
         never) |
         ('array' extends ExtractType<R> ?
             T extends { items: infer R } ?
-                R extends readonly (infer I)[] ? {
-                    [K in Exclude<keyof R, keyof any[]>]: TypeOf<R[K], X>;
+                R extends readonly any[] ? {
+                    [K in Exclude<keyof R, keyof any[] & string>]: TypeOf<R[K], X>;
                 } & (
-                    T extends { additionalItems: false } ? ArrayOf<I, X> & Pick<R, 'length'> : JsonArray
-                ) :
-                ArrayOf<R, X> :
+                    T extends { additionalItems: false } ? readonly unknown[] & Pick<R, 'length'> : JsonArray
+                ) : (ArrayOf<R, X>) :
             JsonArray :
         never) |
         ('string' extends ExtractType<R> ? string : never) |
@@ -100,7 +93,7 @@ type Select<T, K> =
 
 type Tuple<N> = readonly any[] & { length: N }
 
-const metaSchema = {
+export const metaSchema = {
     definitions: {
         schemaArray: {
             type: 'array',
@@ -152,7 +145,7 @@ const metaSchema = {
         },
         allOf: { $ref: ['#', 'definitions', 'schemaArray'] },
         anyOf: { $ref: ['#', 'definitions', 'schemaArray'] },
-        // if object
+        // object
         additionalItems: { $ref: '#' },
         items: {
             anyOf: [
@@ -160,7 +153,7 @@ const metaSchema = {
                 { $ref: ['#', 'definitions', 'schemaArray'] }
             ]
         },
-        // if array
+        // array
         required: { $ref: ['#', 'definitions', 'stringArray'] },
         additionalProperties: { $ref: '#' },
         properties: {
@@ -169,3 +162,15 @@ const metaSchema = {
         }
     }
 } as const;
+
+type DeepReadonly<T> = 
+    T extends Primitive ? T :
+    T extends (any[] | readonly any[]) ? DeepReadonlyArray<T[number]> :
+    T extends Function ? T :
+    T extends {} ? DeepReadonlyObject<T> :
+    unknown;
+type Primitive = string | number | boolean | bigint | symbol | undefined | null;
+type DeepReadonlyObject<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
+interface DeepReadonlyArray<T> extends ReadonlyArray<DeepReadonly<T>> {}
+
+const schema: DeepReadonly<GetValue<typeof metaSchema>> = metaSchema;
