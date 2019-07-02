@@ -87,3 +87,26 @@ type And<T extends readonly any[]> = {
     0: JsonValue;
     1: Head<T> & And<Tail<T>>;
 }[T extends readonly [any, ...any[]] ? 1 : 0];
+
+/*
+type TypeOf<T, X> = {
+    0: T extends { $ref: infer R } ?
+        R extends '#' | readonly ['#', ...string[]] ? TypeOf<Select<X, R>, X> :
+        Select<X, R> :
+    never;
+    1: T extends { allOf: infer R } ?
+        R extends readonly any[] ? And<{[K in keyof R]: TypeOf<R[K], X>}> :
+        JsonValue :
+    never;
+    2: T extends { anyOf: readonly (infer R)[] } ? TypeOf<R & Exclude<T, 'anyOf'>, X> : never;
+    3: 
+        T extends true ? JsonValue :
+        T extends false ? never :
+        ...
+}[
+    T extends { $ref: any } ? 0 : 
+    T extends { allOf: any } ? 1 : 
+    T extends { anyOf: readonly any[] } ? 2 : 
+    3
+];
+*/
