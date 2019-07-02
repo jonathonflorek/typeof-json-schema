@@ -6,7 +6,9 @@ export type GetDefinitions<T extends {definitions: any}, Ext extends {} = {}> = 
 };
 
 export type TypeOf<T, X> =
-    T extends { $ref: infer R } ? ValueOf2<Select<X, R>, X> :
+    T extends { $ref: infer R } ? 
+        R extends '#' | readonly ['#', ...string[]] ? ValueOf2<Select<X, R>, X> :
+        Select<X, R> :
     T extends { allOf: infer R } ? 
         R extends Tuple<1> ? ValueOf2<R[0], X> :
         R extends Tuple<2> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> :
@@ -17,7 +19,9 @@ export type TypeOf<T, X> =
     T extends { anyOf: readonly (infer R)[] } ? ValueOf2<R & T, X> :
     ValueOf<T, X>;
 type ValueOf2<T, X> =
-    T extends { $ref: infer R } ? ValueOf1<Select<X, R>, X> :
+    T extends { $ref: infer R } ?
+        R extends '#' | readonly ['#', ...string[]] ? ValueOf1<Select<X, R>, X> :
+        Select<X, R> :
     T extends { allOf: infer R } ?
         R extends Tuple<1> ? ValueOf1<R[0], X> :
         R extends Tuple<2> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> :
@@ -28,7 +32,9 @@ type ValueOf2<T, X> =
     T extends { anyOf: readonly (infer R)[] } ? ValueOf1<R & T, X> :
     ValueOf<T, X>;
 type ValueOf1<T, X> =
-    T extends { $ref: infer R } ? ValueOf<Select<X, R>, X> :
+    T extends { $ref: infer R } ?
+        R extends '#' | readonly ['#', ...string[]] ? ValueOf<Select<X, R>, X> :
+        Select<X, R> :
     T extends { allOf: infer R } ?
         R extends Tuple<1> ? ValueOf<R[0], X> :
         R extends Tuple<2> ? ValueOf<R[0], X> & ValueOf<R[1], X> :
