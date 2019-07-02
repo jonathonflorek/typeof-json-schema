@@ -1,7 +1,5 @@
 import { JsonArray, JsonObject, JsonValue } from './json';
 
-const fix = (key: string, value: any) => key === '$ref' && Array.isArray(value) ? value.join('/') : value;
-
 export type GetValue<T, Ext extends {} = {}> = TypeOf<T, { '#': T } & Ext>;
 export type GetDefinitions<T extends {definitions: any}, Ext extends {} = {}> = {
     [K in keyof T['definitions']]: TypeOf<T['definitions'][K], { '#': T } & Ext>;
@@ -92,85 +90,3 @@ type Select<T, K> =
     unknown;
 
 type Tuple<N> = readonly any[] & { length: N }
-
-export const metaSchema = {
-    definitions: {
-        schemaArray: {
-            type: 'array',
-            items: { $ref: '#' }
-        },
-        simpleTypes: {
-            enum: [
-                'array',
-                'boolean',
-                'integer',
-                'null',
-                'number',
-                'object',
-                'string'
-            ]
-        },
-        stringArray: {
-            type: 'array',
-            items: { type: 'string' }
-        }
-    },
-    type: ['object', 'boolean'],
-    properties: {
-        // special
-        $ref: {
-            anyOf: [
-                { type: 'string' },
-                { $ref: ['#', 'definitions', 'stringArray'] }
-            ]
-        },
-        // general
-        definitions: {
-            type: 'object',
-            additionalProperties: { $ref: '#' }
-        },
-        const: true,
-        enum: {
-            type: 'array',
-            items: true,
-        },        
-        type: {
-            anyOf: [
-                { $ref: ['#', 'definitions', 'simpleTypes'] },
-                { 
-                    type: 'array',
-                    items: { $ref: ['#', 'definitions', 'simpleTypes'] },
-                }
-            ]
-        },
-        allOf: { $ref: ['#', 'definitions', 'schemaArray'] },
-        anyOf: { $ref: ['#', 'definitions', 'schemaArray'] },
-        // object
-        additionalItems: { $ref: '#' },
-        items: {
-            anyOf: [
-                { $ref: '#' },
-                { $ref: ['#', 'definitions', 'schemaArray'] }
-            ]
-        },
-        // array
-        required: { $ref: ['#', 'definitions', 'stringArray'] },
-        additionalProperties: { $ref: '#' },
-        properties: {
-            type: 'object',
-            additionalProperties: { $ref: '#' }
-        }
-    }
-} as const;
-
-type DeepReadonly<T> = 
-    T extends Primitive ? T :
-    T extends (any[] | readonly any[]) ? DeepReadonlyArray<T[number]> :
-    T extends Function ? T :
-    T extends {} ? DeepReadonlyObject<T> :
-    unknown;
-type Primitive = string | number | boolean | bigint | symbol | undefined | null;
-type DeepReadonlyObject<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
-interface DeepReadonlyArray<T> extends ReadonlyArray<DeepReadonly<T>> {}
-
-const schema: DeepReadonly<GetValue<typeof metaSchema>> = metaSchema;
