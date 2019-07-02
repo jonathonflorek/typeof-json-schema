@@ -10,11 +10,7 @@ export type TypeOf<T, X> =
         R extends '#' | readonly ['#', ...string[]] ? ValueOf2<Select<X, R>, X> :
         Select<X, R> :
     T extends { allOf: infer R } ? 
-        R extends Tuple<1> ? ValueOf2<R[0], X> :
-        R extends Tuple<2> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> :
-        R extends Tuple<3> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> & ValueOf2<R[2], X> :
-        R extends Tuple<4> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> & ValueOf2<R[2], X> & ValueOf2<R[3], X> :
-        R extends Tuple<5> ? ValueOf2<R[0], X> & ValueOf2<R[1], X> & ValueOf2<R[2], X> & ValueOf2<R[3], X> & ValueOf2<R[4], X>:
+        R extends readonly any[] ? And<{[K in keyof R]: ValueOf2<R[K], X>}> :
         JsonValue :
     T extends { anyOf: readonly (infer R)[] } ? ValueOf2<R & T, X> :
     ValueOf<T, X>;
@@ -23,11 +19,7 @@ type ValueOf2<T, X> =
         R extends '#' | readonly ['#', ...string[]] ? ValueOf1<Select<X, R>, X> :
         Select<X, R> :
     T extends { allOf: infer R } ?
-        R extends Tuple<1> ? ValueOf1<R[0], X> :
-        R extends Tuple<2> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> :
-        R extends Tuple<3> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> :
-        R extends Tuple<4> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> & ValueOf1<R[3], X> :
-        R extends Tuple<5> ? ValueOf1<R[0], X> & ValueOf1<R[1], X> & ValueOf1<R[2], X> & ValueOf1<R[3], X> & ValueOf1<R[4], X>:
+        R extends readonly any[] ? And<{[K in keyof R]: ValueOf1<R[K], X>}> :
         JsonValue :
     T extends { anyOf: readonly (infer R)[] } ? ValueOf1<R & T, X> :
     ValueOf<T, X>;
@@ -36,11 +28,7 @@ type ValueOf1<T, X> =
         R extends '#' | readonly ['#', ...string[]] ? ValueOf<Select<X, R>, X> :
         Select<X, R> :
     T extends { allOf: infer R } ?
-        R extends Tuple<1> ? ValueOf<R[0], X> :
-        R extends Tuple<2> ? ValueOf<R[0], X> & ValueOf<R[1], X> :
-        R extends Tuple<3> ? ValueOf<R[0], X> & ValueOf<R[1], X> & ValueOf<R[2], X> :
-        R extends Tuple<4> ? ValueOf<R[0], X> & ValueOf<R[1], X> & ValueOf<R[2], X> & ValueOf<R[3], X> :
-        R extends Tuple<5> ? ValueOf<R[0], X> & ValueOf<R[1], X> & ValueOf<R[2], X> & ValueOf<R[3], X> & ValueOf<R[4], X>:
+        R extends readonly any[] ? And<{[K in keyof R]: ValueOf<R[K], X>}> :
         JsonValue :
     T extends { anyOf: readonly (infer R)[] } ? ValueOf<R & T, X> :
     ValueOf<T, X>;
@@ -85,14 +73,17 @@ type ValueOf<T, X> =
 type ExtractType<T> = T extends readonly (infer I)[] ? I : T;
 interface ArrayOf<T, X> extends Array<TypeOf<T, X>> {}
 
+type Head<T extends readonly any[]> = T extends [infer U, ...any[]] ? U : never;
+type Tail<T extends readonly any[]> = ((...args: T) => void) extends (head: any, ...tail: infer U) => any ? U : never;
 type Select<T, K> =
-    K extends keyof T ? T [K] :
-    K extends Tuple<0> ? T :
-    K extends Tuple<1> ? T [K[0]] :
-    K extends Tuple<2> ? T [K[0]] [K[1]] :
-    K extends Tuple<3> ? T [K[0]] [K[1]] [K[2]] :
-    K extends Tuple<4> ? T [K[0]] [K[1]] [K[2]] [K[3]] :
-    K extends Tuple<5> ? T [K[0]] [K[1]] [K[2]] [K[3]] [K[4]] :
-    unknown;
-
-type Tuple<N> = readonly any[] & { length: N }
+    K extends keyof T ? T[K] :
+    K extends readonly string[] ? SelectRecursive<T, K> :
+    never;
+type SelectRecursive<T, K extends readonly string[], KHead = Head<K>> = {
+    0: T;
+    1: KHead extends keyof T ? SelectRecursive<T[KHead], Tail<K>> : never;
+}[K extends readonly [any, ...any[]] ? 1 : 0];
+type And<T extends readonly any[]> = {
+    0: JsonValue;
+    1: Head<T> & And<Tail<T>>;
+}[T extends readonly [any, ...any[]] ? 1 : 0];
